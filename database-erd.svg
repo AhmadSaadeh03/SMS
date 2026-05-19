@@ -1,0 +1,252 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="3200" height="2200" viewBox="0 0 3200 2200">
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .title { font: 900 56px Arial, sans-serif; fill: #0f172a; }
+      .subtitle { font: 500 24px Arial, sans-serif; fill: #475569; }
+      .table { fill: #ffffff; stroke: #cbd5e1; stroke-width: 3; rx: 22; }
+      .head { rx: 22; }
+      .head-users { fill: #4f46e5; }
+      .head-core { fill: #0891b2; }
+      .head-records { fill: #16a34a; }
+      .head-msg { fill: #ea580c; }
+      .headText { font: 900 28px Arial, sans-serif; fill: #ffffff; }
+      .field { font: 21px Consolas, monospace; fill: #111827; }
+      .small { font: 18px Consolas, monospace; fill: #475569; }
+      .pk { fill: #4338ca; font-weight: 900; }
+      .fk { fill: #0e7490; font-weight: 900; }
+      .enum { fill: #c2410c; }
+      .rel { fill: none; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+      .rel-user { stroke: #4f46e5; }
+      .rel-core { stroke: #0891b2; }
+      .rel-record { stroke: #16a34a; }
+      .rel-msg { stroke: #ea580c; }
+      .labelBox { fill: #ffffff; stroke: #cbd5e1; stroke-width: 2; rx: 10; }
+      .label { font: 800 18px Arial, sans-serif; fill: #0f172a; }
+      .port { fill: #ffffff; stroke: #334155; stroke-width: 2.5; }
+      .legendBox { fill: #ffffff; stroke: #cbd5e1; stroke-width: 3; rx: 20; }
+      .legendTitle { font: 900 26px Arial, sans-serif; fill: #0f172a; }
+      .legend { font: 21px Arial, sans-serif; fill: #334155; }
+    </style>
+    <marker id="arrow-user" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" orient="auto">
+      <path d="M0,0 L12,6 L0,12 z" fill="#4f46e5"/>
+    </marker>
+    <marker id="arrow-core" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" orient="auto">
+      <path d="M0,0 L12,6 L0,12 z" fill="#0891b2"/>
+    </marker>
+    <marker id="arrow-record" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" orient="auto">
+      <path d="M0,0 L12,6 L0,12 z" fill="#16a34a"/>
+    </marker>
+    <marker id="arrow-msg" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" orient="auto">
+      <path d="M0,0 L12,6 L0,12 z" fill="#ea580c"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="3200" height="2200"/>
+  <text class="title" x="90" y="80">School Management Database ERD</text>
+  <text class="subtitle" x="90" y="120">Connected relationship diagram. Every line is a foreign-key relation and the arrow points to the referenced parent table.</text>
+
+  <!-- USERS -->
+  <g id="Users">
+    <rect class="table" x="90" y="320" width="590" height="380"/>
+    <rect class="head head-users" x="90" y="320" width="590" height="74"/>
+    <text class="headText" x="128" y="368">Users</text>
+    <text class="field pk" x="128" y="440">PK id : INTEGER</text>
+    <text class="field" x="128" y="480">name : STRING</text>
+    <text class="field" x="128" y="520">email : STRING UNIQUE</text>
+    <text class="field" x="128" y="560">password : STRING</text>
+    <text class="field enum" x="128" y="600">role : admin | manager | teacher | student | parent</text>
+    <text class="field enum" x="128" y="640">manager_scope : grades_1_7 | grades_8_12</text>
+    <text class="small" x="128" y="680">createdAt, updatedAt</text>
+  </g>
+
+  <!-- STUDENTS -->
+  <g id="Students">
+    <rect class="table" x="970" y="290" width="520" height="310"/>
+    <rect class="head head-core" x="970" y="290" width="520" height="74"/>
+    <text class="headText" x="1008" y="338">Students</text>
+    <text class="field pk" x="1008" y="410">PK/FK user_id : Users.id</text>
+    <text class="field fk" x="1008" y="450">FK class_id : Classes.id</text>
+    <text class="field fk" x="1008" y="490">FK parent_id : Users.id</text>
+    <text class="small" x="1008" y="530">createdAt, updatedAt</text>
+    <text class="small" x="1008" y="570">profile, parent, class</text>
+  </g>
+
+  <!-- CLASSES -->
+  <g id="Classes">
+    <rect class="table" x="1780" y="290" width="500" height="310"/>
+    <rect class="head head-core" x="1780" y="290" width="500" height="74"/>
+    <text class="headText" x="1818" y="338">Classes</text>
+    <text class="field pk" x="1818" y="410">PK id : INTEGER</text>
+    <text class="field" x="1818" y="450">grade_level : INTEGER</text>
+    <text class="field" x="1818" y="490">section : STRING(1)</text>
+    <text class="field fk" x="1818" y="530">FK manager_id : Users.id</text>
+    <text class="small" x="1818" y="570">createdAt, updatedAt</text>
+  </g>
+
+  <!-- SUBJECTS -->
+  <g id="Subjects">
+    <rect class="table" x="2630" y="335" width="450" height="230"/>
+    <rect class="head head-core" x="2630" y="335" width="450" height="74"/>
+    <text class="headText" x="2668" y="383">Subjects</text>
+    <text class="field pk" x="2668" y="455">PK id : INTEGER</text>
+    <text class="field" x="2668" y="495">name : STRING UNIQUE</text>
+    <text class="small" x="2668" y="535">createdAt, updatedAt</text>
+  </g>
+
+  <!-- TEACHERS_CLASSES -->
+  <g id="Teachers_Classes">
+    <rect class="table" x="1780" y="850" width="580" height="340"/>
+    <rect class="head head-core" x="1780" y="850" width="580" height="74"/>
+    <text class="headText" x="1818" y="898">Teachers_Classes</text>
+    <text class="field pk" x="1818" y="970">PK id : INTEGER</text>
+    <text class="field fk" x="1818" y="1010">FK teacher_id : Users.id</text>
+    <text class="field fk" x="1818" y="1050">FK class_id : Classes.id</text>
+    <text class="field fk" x="1818" y="1090">FK subject_id : Subjects.id</text>
+    <text class="small" x="1818" y="1130">UNIQUE(class_id, subject_id)</text>
+    <text class="small" x="1818" y="1170">createdAt, updatedAt</text>
+  </g>
+
+  <!-- ATTENDANCE -->
+  <g id="Attendance">
+    <rect class="table" x="90" y="1180" width="590" height="320"/>
+    <rect class="head head-records" x="90" y="1180" width="590" height="74"/>
+    <text class="headText" x="128" y="1228">Attendance</text>
+    <text class="field pk" x="128" y="1300">PK id : INTEGER</text>
+    <text class="field fk" x="128" y="1340">FK student_id : Students.user_id</text>
+    <text class="field fk" x="128" y="1380">FK teacher_id : Users.id</text>
+    <text class="field" x="128" y="1420">date : DATEONLY</text>
+    <text class="field enum" x="128" y="1460">status : Present | Absent | Late | Excused</text>
+  </g>
+
+  <!-- GRADES -->
+  <g id="Grades">
+    <rect class="table" x="970" y="1120" width="560" height="410"/>
+    <rect class="head head-records" x="970" y="1120" width="560" height="74"/>
+    <text class="headText" x="1008" y="1168">Grades</text>
+    <text class="field pk" x="1008" y="1240">PK id : INTEGER</text>
+    <text class="field fk" x="1008" y="1280">FK student_id : Students.user_id</text>
+    <text class="field fk" x="1008" y="1320">FK teacher_id : Users.id</text>
+    <text class="field fk" x="1008" y="1360">FK subject_id : Subjects.id</text>
+    <text class="field" x="1008" y="1400">grade_value : FLOAT</text>
+    <text class="field" x="1008" y="1440">max_grade : FLOAT</text>
+    <text class="field enum" x="1008" y="1480">type : exam | quiz | homework</text>
+  </g>
+
+  <!-- ANNOUNCEMENTS -->
+  <g id="Announcements">
+    <rect class="table" x="970" y="1740" width="560" height="300"/>
+    <rect class="head head-msg" x="970" y="1740" width="560" height="74"/>
+    <text class="headText" x="1008" y="1788">Announcements</text>
+    <text class="field pk" x="1008" y="1860">PK id : INTEGER</text>
+    <text class="field fk" x="1008" y="1900">FK sender_id : Users.id</text>
+    <text class="field" x="1008" y="1940">title : STRING</text>
+    <text class="field" x="1008" y="1980">content : TEXT</text>
+    <text class="field" x="1008" y="2020">date : DATEONLY</text>
+  </g>
+
+  <!-- ANNOUNCEMENT RECEIVERS -->
+  <g id="Announcement_Receivers">
+    <rect class="table" x="1780" y="1760" width="650" height="260"/>
+    <rect class="head head-msg" x="1780" y="1760" width="650" height="74"/>
+    <text class="headText" x="1818" y="1808">Announcement_Receivers</text>
+    <text class="field pk" x="1818" y="1880">PK id : INTEGER</text>
+    <text class="field fk" x="1818" y="1920">FK announcement_id : Announcements.id</text>
+    <text class="field fk" x="1818" y="1960">FK user_id : Users.id</text>
+    <text class="small" x="1818" y="2000">createdAt, updatedAt</text>
+  </g>
+
+  <!-- RELATIONSHIP LINES: arrows point to parent table -->
+  <!-- Student to Users -->
+  <path class="rel rel-user" marker-end="url(#arrow-user)" d="M970 410 H680"/>
+  <rect class="labelBox" x="720" y="374" width="205" height="34"/>
+  <text class="label" x="736" y="398">student profile</text>
+
+  <path class="rel rel-user" marker-end="url(#arrow-user)" d="M970 490 H835 V640 H680"/>
+  <rect class="labelBox" x="736" y="604" width="145" height="34"/>
+  <text class="label" x="752" y="628">parent</text>
+
+  <!-- Student to Classes -->
+  <path class="rel rel-core" marker-end="url(#arrow-core)" d="M1490 450 H1780"/>
+  <rect class="labelBox" x="1564" y="414" width="145" height="34"/>
+  <text class="label" x="1580" y="438">class</text>
+
+  <!-- Classes manager to Users, routed over top -->
+  <path class="rel rel-user" marker-end="url(#arrow-user)" d="M1780 530 H1650 V210 H385 V320"/>
+  <rect class="labelBox" x="885" y="176" width="230" height="34"/>
+  <text class="label" x="901" y="200">class manager</text>
+
+  <!-- Teachers_Classes relations -->
+  <path class="rel rel-user" marker-end="url(#arrow-user)" d="M1780 1010 H760 V700"/>
+  <rect class="labelBox" x="1010" y="974" width="175" height="34"/>
+  <text class="label" x="1026" y="998">teacher</text>
+
+  <path class="rel rel-core" marker-end="url(#arrow-core)" d="M2030 850 V600"/>
+  <rect class="labelBox" x="2048" y="704" width="175" height="34"/>
+  <text class="label" x="2064" y="728">class taught</text>
+
+  <path class="rel rel-core" marker-end="url(#arrow-core)" d="M2360 1090 H2855 V565"/>
+  <rect class="labelBox" x="2602" y="1054" width="170" height="34"/>
+  <text class="label" x="2618" y="1078">subject</text>
+
+  <!-- Attendance relations -->
+  <path class="rel rel-record" marker-end="url(#arrow-record)" d="M680 1340 H830 V600"/>
+  <rect class="labelBox" x="704" y="1270" width="205" height="34"/>
+  <text class="label" x="720" y="1294">attendance student</text>
+
+  <path class="rel rel-user" marker-end="url(#arrow-user)" d="M385 1180 V700"/>
+  <rect class="labelBox" x="410" y="916" width="215" height="34"/>
+  <text class="label" x="426" y="940">attendance teacher</text>
+
+  <!-- Grade relations -->
+  <path class="rel rel-record" marker-end="url(#arrow-record)" d="M1250 1120 V600"/>
+  <rect class="labelBox" x="1268" y="830" width="165" height="34"/>
+  <text class="label" x="1284" y="854">grade student</text>
+
+  <path class="rel rel-user" marker-end="url(#arrow-user)" d="M970 1320 H760 V700"/>
+  <rect class="labelBox" x="776" y="1224" width="180" height="34"/>
+  <text class="label" x="792" y="1248">grade teacher</text>
+
+  <path class="rel rel-record" marker-end="url(#arrow-record)" d="M1530 1360 H2855 V565"/>
+  <rect class="labelBox" x="2035" y="1324" width="185" height="34"/>
+  <text class="label" x="2051" y="1348">grade subject</text>
+
+  <!-- Announcement relations -->
+  <path class="rel rel-msg" marker-end="url(#arrow-msg)" d="M970 1900 H760 V700"/>
+  <rect class="labelBox" x="770" y="1784" width="245" height="34"/>
+  <text class="label" x="786" y="1808">announcement sender</text>
+
+  <path class="rel rel-msg" marker-end="url(#arrow-msg)" d="M1780 1920 H1530"/>
+  <rect class="labelBox" x="1582" y="1884" width="225" height="34"/>
+  <text class="label" x="1598" y="1908">announcement</text>
+
+  <path class="rel rel-user" marker-end="url(#arrow-user)" d="M1780 1960 H1650 V210 H385 V320"/>
+  <rect class="labelBox" x="1118" y="245" width="185" height="34"/>
+  <text class="label" x="1134" y="269">receiver user</text>
+
+  <!-- Connection ports -->
+  <circle class="port" cx="970" cy="410" r="7"/>
+  <circle class="port" cx="970" cy="490" r="7"/>
+  <circle class="port" cx="1490" cy="450" r="7"/>
+  <circle class="port" cx="1780" cy="530" r="7"/>
+  <circle class="port" cx="1780" cy="1010" r="7"/>
+  <circle class="port" cx="2030" cy="850" r="7"/>
+  <circle class="port" cx="2360" cy="1090" r="7"/>
+  <circle class="port" cx="680" cy="1340" r="7"/>
+  <circle class="port" cx="385" cy="1180" r="7"/>
+  <circle class="port" cx="1250" cy="1120" r="7"/>
+  <circle class="port" cx="970" cy="1320" r="7"/>
+  <circle class="port" cx="1530" cy="1360" r="7"/>
+  <circle class="port" cx="970" cy="1900" r="7"/>
+  <circle class="port" cx="1780" cy="1920" r="7"/>
+  <circle class="port" cx="1780" cy="1960" r="7"/>
+
+  <!-- Legend -->
+  <rect class="legendBox" x="1850" y="1260" width="1010" height="295"/>
+  <text class="legendTitle" x="1890" y="1310">Legend</text>
+  <text class="legend" x="1890" y="1354">Purple lines: relations that point to Users.</text>
+  <text class="legend" x="1890" y="1394">Blue lines: class, subject, and teaching setup relations.</text>
+  <text class="legend" x="1890" y="1434">Green lines: grades and attendance record relations.</text>
+  <text class="legend" x="1890" y="1474">Orange lines: announcement relations.</text>
+  <text class="legend" x="1890" y="1514">Important: manager, teacher, parent, student, and admin are roles inside Users.</text>
+</svg>
