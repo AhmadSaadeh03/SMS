@@ -102,6 +102,95 @@ function useTeacherData() {
   return { classes, students, subjects, stats, loading, msg, setMsg, reload: load };
 }
 
+// ─── Timetable helpers (shared) ───────────────────────────────────────────────
+const TIMETABLE_DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday'];
+
+function buildTimetableGrid(slots) {
+  const times = [...new Set(slots.map(s => s.start_time))].sort();
+  const map = {};
+  slots.forEach(s => {
+    if (!map[s.day]) map[s.day] = {};
+    map[s.day][s.start_time] = s;
+  });
+  return { times, map };
+}
+
+function TimetableGrid({ slots, t, showClass = false }) {
+  if (!slots.length) return (
+    <p className={`text-center py-10 text-sm ${t.subheading}`}>No schedule assigned yet.</p>
+  );
+  const { times, map } = buildTimetableGrid(slots);
+  return (
+    <div className="overflow-auto">
+      <table className="w-full text-sm min-w-[680px]">
+        <thead>
+          <tr style={{ background: t.tableHeadBg }}>
+            <th className={`px-4 py-3 text-left text-xs font-bold uppercase tracking-wider ${t.subheading}`}>Time</th>
+            {TIMETABLE_DAYS.map(d => (
+              <th key={d} className={`px-4 py-3 text-left text-xs font-bold uppercase tracking-wider ${t.subheading}`}>{d}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {times.map((time, i) => (
+            <tr key={time} style={{ background: i % 2 === 0 ? t.tableRowEven : t.tableRowOdd, borderTop: `1px solid ${t.cardBorder}` }}>
+              <td className={`px-4 py-3 font-bold text-xs ${t.label}`}>{time}</td>
+              {TIMETABLE_DAYS.map(day => {
+                const slot = map[day]?.[time];
+                return (
+                  <td key={day} className="px-4 py-3">
+                    {slot ? (
+                      <div className="rounded-xl p-2.5"
+                        style={{ background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.2)" }}>
+                        <p className={`font-bold text-xs ${t.heading}`}>{slot.subject?.name}</p>
+                        {showClass && slot.class && (
+                          <p className={`text-xs mt-0.5 ${t.subheading}`}>G{slot.class.grade_level}-{slot.class.section}</p>
+                        )}
+                        <p className={`text-xs mt-0.5 ${t.subheading}`}>{slot.start_time}–{slot.end_time}</p>
+                      </div>
+                    ) : (
+                      <span className={`text-xs ${t.subheading} opacity-30`}>—</span>
+                    )}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function ScheduleView({ t }) {
+  const [slots, setSlots]     = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("http://localhost:5000/timetable", {
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionStorage.getItem("token")}` },
+    })
+      .then(r => r.json())
+      .then(d => { if (d.success) setSlots(d.slots); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  return (
+    <div>
+      <h2 className={`text-xl font-bold mb-1 ${t.heading}`}>My Schedule</h2>
+      <p className={`text-sm mb-6 ${t.subheading}`}>Your weekly teaching timetable across all assigned classes.</p>
+      <div className="rounded-2xl overflow-hidden" style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}` }}>
+        {loading ? (
+          <div className="flex justify-center py-16"><Spinner /></div>
+        ) : (
+          <TimetableGrid slots={slots} t={t} showClass={true} />
+        )}
+      </div>
+    </div>
+  );
+}
+
 function DashboardView({ t, data, onNavigate }) {
   const user = JSON.parse(sessionStorage.getItem("user") || "{}");
   const cards = [
@@ -772,12 +861,13 @@ export default function Teacher({ onLogout }) {
   };
 
   const nav = [
-    { id: "dashboard", icon: "D", label: "Dashboard" },
-    { id: "classes", icon: "C", label: "My Classes" },
-    { id: "students", icon: "S", label: "Students" },
-    { id: "attendance", icon: "A", label: "Attendance" },
-    { id: "grades", icon: "G", label: "Grades" },
-    { id: "announcements", icon: "N", label: "Announcements" },
+    { id: "dashboard",    icon: "D", label: "Dashboard" },
+    { id: "schedule",     icon: "T", label: "My Schedule" },
+    { id: "classes",      icon: "C", label: "My Classes" },
+    { id: "students",     icon: "S", label: "Students" },
+    { id: "attendance",   icon: "A", label: "Attendance" },
+    { id: "grades",       icon: "G", label: "Grades" },
+    { id: "announcements",icon: "N", label: "Announcements" },
   ];
 
   const sidebar = (
@@ -837,12 +927,13 @@ export default function Teacher({ onLogout }) {
           {data.msg && <Alert msg={data.msg} onClose={() => data.setMsg(null)} />}
           {data.loading ? <div className="flex justify-center py-20"><Spinner /></div> : (
             <>
-              {view === "dashboard" && <DashboardView t={t} data={data} onNavigate={setView} />}
-              {view === "classes" && <ClassesView t={t} data={data} />}
-              {view === "students" && <StudentsView t={t} data={data} />}
-              {view === "attendance" && <AttendanceView t={t} data={data} />}
-              {view === "grades" && <GradesView t={t} data={data} />}
-              {view === "announcements" && <AnnouncementsView t={t} data={data} />}
+              {view === "dashboard"    && <DashboardView t={t} data={data} onNavigate={setView} />}
+              {view === "schedule"     && <ScheduleView t={t} />}
+              {view === "classes"      && <ClassesView t={t} data={data} />}
+              {view === "students"     && <StudentsView t={t} data={data} />}
+              {view === "attendance"   && <AttendanceView t={t} data={data} />}
+              {view === "grades"       && <GradesView t={t} data={data} />}
+              {view === "announcements"&& <AnnouncementsView t={t} data={data} />}
             </>
           )}
         </main>

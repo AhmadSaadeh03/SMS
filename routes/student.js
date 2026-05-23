@@ -114,7 +114,16 @@ router.get('/attendance', async (req, res) => {
     }
     if (status) where.status = status;
 
-    const records = await Attendance.findAll({ where, order: [['date', 'DESC']] });
+    // Fetch sorted by date DESC, id DESC so latest record per date comes first
+    const raw = await Attendance.findAll({ where, order: [['date', 'DESC'], ['id', 'DESC']] });
+
+    // Keep only the most recent record per date (in case two teachers submitted for same day)
+    const seen = new Set();
+    const records = raw.filter(r => {
+      if (seen.has(r.date)) return false;
+      seen.add(r.date);
+      return true;
+    });
 
     const total      = records.length;
     const present    = records.filter(r => r.status === 'Present').length;

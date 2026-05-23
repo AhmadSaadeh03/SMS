@@ -21,7 +21,7 @@ async function main() {
     throw new Error('No classes found. Run the main seed first so students can be assigned to classes.');
   }
 
-  for (let i = 1; i <= 20; i++) {
+  for (let i = 1; i <= 10; i++) {
     await ensureUser({
       name: `Extra Admin ${i}`,
       email: `admin${i}@school.com`,

@@ -58,7 +58,7 @@ function StatCard({ t, label, value, note, color, icon }) {
 
 function statusTone(status) {
   if (status === "Present") return "good";
-  if (status === "Late" || status === "Excused") return "warn";
+  if (status === "Late") return "warn";
   if (status === "Absent") return "danger";
   return "neutral";
 }
@@ -82,6 +82,7 @@ export default function Student({ onLogout }) {
   const [gradeTypeFilter, setGradeTypeFilter]     = useState("");
   const [gradeSubjFilter, setGradeSubjFilter]     = useState("");
   const [attStatusFilter, setAttStatusFilter]     = useState("");
+  const [timetableSlots, setTimetableSlots]       = useState([]);
   const user = JSON.parse(sessionStorage.getItem("user") || "{}");
 
   const t = dark ? {
@@ -128,20 +129,22 @@ export default function Student({ onLogout }) {
     setLoading(true);
     setMsg(null);
     try {
-      const [pRes, gRes, aRes, anRes] = await Promise.all([
+      const [pRes, gRes, aRes, anRes, ttRes] = await Promise.all([
         fetch(`${API}/student/profile`,       { headers: authHeaders() }),
         fetch(`${API}/student/grades`,        { headers: authHeaders() }),
         fetch(`${API}/student/attendance`,    { headers: authHeaders() }),
         fetch(`${API}/student/announcements`, { headers: authHeaders() }),
+        fetch(`${API}/timetable`,             { headers: authHeaders() }),
       ]);
-      const [pJson, gJson, aJson, anJson] = await Promise.all([
-        pRes.json(), gRes.json(), aRes.json(), anRes.json(),
+      const [pJson, gJson, aJson, anJson, ttJson] = await Promise.all([
+        pRes.json(), gRes.json(), aRes.json(), anRes.json(), ttRes.json(),
       ]);
       if (!pJson.success) throw new Error(pJson.message || "Failed to load profile.");
       setProfileData(pJson);
       setGradesData(gJson.success ? gJson : { grades_by_subject: [] });
       setAttendanceData(aJson.success ? aJson : { summary: { total: 0, present: 0, absent: 0, late: 0, excused: 0, percentage: 0 }, records: [] });
       setAnnouncementsData(anJson.success ? anJson : { announcements: [] });
+      setTimetableSlots(ttJson.success ? ttJson.slots : []);
     } catch (err) {
       setMsg(err.message || "Failed to load student dashboard.");
     }
@@ -183,9 +186,10 @@ export default function Student({ onLogout }) {
   const announcements  = announcementsData?.announcements || [];
 
   const nav = [
-    { id: "overview",      icon: "🏠", label: "Overview"   },
-    { id: "grades",        icon: "📊", label: "My Grades"  },
-    { id: "attendance",    icon: "📅", label: "Attendance" },
+    { id: "overview",      icon: "🏠", label: "Overview"      },
+    { id: "grades",        icon: "📊", label: "My Grades"     },
+    { id: "attendance",    icon: "📅", label: "Attendance"    },
+    { id: "timetable",     icon: "🗓️", label: "Timetable"    },
     { id: "announcements", icon: "🔔", label: "Announcements" },
   ];
 
@@ -441,7 +445,6 @@ export default function Student({ onLogout }) {
                       { label: "Present",    value: attSummary.present,  color: "#16a34a" },
                       { label: "Absent",     value: attSummary.absent,   color: "#dc2626" },
                       { label: "Late",       value: attSummary.late,     color: "#ea580c" },
-                      { label: "Excused",    value: attSummary.excused,  color: "#0891b2" },
                     ].map(({ label, value, color }) => (
                       <div key={label} className="rounded-2xl p-5 text-center"
                         style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}` }}>
@@ -466,7 +469,6 @@ export default function Student({ onLogout }) {
                           <option value="Present">Present</option>
                           <option value="Absent">Absent</option>
                           <option value="Late">Late</option>
-                          <option value="Excused">Excused</option>
                         </select>
                         <Badge tone={attSummary.percentage >= 80 ? "good" : "warn"}>{attSummary.percentage}% present</Badge>
                       </div>
@@ -493,6 +495,59 @@ export default function Student({ onLogout }) {
                       </table>
                     </div>
                   </section>
+                </div>
+              )}
+
+              {/* ── TIMETABLE ── */}
+              {activeTab === "timetable" && (
+                <div>
+                  <div className="mb-5">
+                    <h2 className={`text-xl font-bold ${t.heading}`}>Class Timetable</h2>
+                    <p className={`text-sm mt-1 ${t.subheading}`}>Your weekly class schedule.</p>
+                  </div>
+                  <div className="rounded-2xl overflow-hidden" style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}` }}>
+                    {timetableSlots.length === 0 ? (
+                      <p className={`text-center py-12 text-sm ${t.subheading}`}>No timetable set for your class yet.</p>
+                    ) : (() => {
+                      const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday'];
+                      const times = [...new Set(timetableSlots.map(s => s.start_time))].sort();
+                      const map = {};
+                      timetableSlots.forEach(s => { if (!map[s.day]) map[s.day] = {}; map[s.day][s.start_time] = s; });
+                      return (
+                        <div className="overflow-auto">
+                          <table className="w-full text-sm min-w-[680px]">
+                            <thead>
+                              <tr style={{ background: t.tableHeadBg }}>
+                                <th className={`px-4 py-3 text-left text-xs font-bold uppercase tracking-wider ${t.label}`}>Time</th>
+                                {DAYS.map(d => <th key={d} className={`px-4 py-3 text-left text-xs font-bold uppercase tracking-wider ${t.label}`}>{d}</th>)}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {times.map((time, i) => (
+                                <tr key={time} style={{ background: i % 2 === 0 ? t.tableRowEven : t.tableRowOdd, borderTop: `1px solid ${t.cardBorder}` }}>
+                                  <td className={`px-4 py-3 font-bold text-xs ${t.label}`}>{time}</td>
+                                  {DAYS.map(day => {
+                                    const slot = map[day]?.[time];
+                                    return (
+                                      <td key={day} className="px-4 py-3">
+                                        {slot ? (
+                                          <div className="rounded-xl p-2.5" style={{ background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.2)" }}>
+                                            <p className={`font-bold text-xs ${t.heading}`}>{slot.subject?.name}</p>
+                                            <p className={`text-xs mt-0.5 ${t.subheading}`}>{slot.teacher?.name}</p>
+                                            <p className={`text-xs mt-0.5 ${t.subheading}`}>{slot.start_time}–{slot.end_time}</p>
+                                          </div>
+                                        ) : <span className={`text-xs ${t.subheading} opacity-30`}>—</span>}
+                                      </td>
+                                    );
+                                  })}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    })()}
+                  </div>
                 </div>
               )}
 

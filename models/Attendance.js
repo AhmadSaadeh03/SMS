@@ -7,6 +7,11 @@ const Attendance = sequelize.define('Attendance', {
   teacher_id: { type: DataTypes.INTEGER, references: { model: 'Users', key: 'id' } },
   date: { type: DataTypes.DATEONLY, allowNull: false },
   status: { type: DataTypes.ENUM('Present','Absent','Late','Excused'), allowNull: false },
-}, { timestamps: true });
+}, {
+  timestamps: true,
+  indexes: [
+    { unique: true, fields: ['student_id', 'date'], name: 'attendance_student_date_unique' },
+  ],
+});
 
 module.exports = Attendance;

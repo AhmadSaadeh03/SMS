@@ -245,9 +245,9 @@ router.post('/attendance', async (req, res) => {
     const student = await Student.findOne({ where: { user_id: student_id, class_id } });
     if (!student) return res.status(404).json({ success: false, message: 'Student not found in this class' });
 
-    const existing = await Attendance.findOne({ where: { student_id, teacher_id: req.user.id, date } });
+    const existing = await Attendance.findOne({ where: { student_id, date } });
     if (existing) {
-      await existing.update({ status });
+      await existing.update({ status, teacher_id: req.user.id });
     } else {
       await Attendance.create({ student_id, teacher_id: req.user.id, date, status });
     }
@@ -278,10 +278,10 @@ router.post('/attendance/bulk', async (req, res) => {
       if (!['Present', 'Absent', 'Late'].includes(record.status)) continue;
 
       const existing = await Attendance.findOne({
-        where: { student_id: studentId, teacher_id: req.user.id, date },
+        where: { student_id: studentId, date },
       });
       if (existing) {
-        await existing.update({ status: record.status });
+        await existing.update({ status: record.status, teacher_id: req.user.id });
       } else {
         await Attendance.create({
           student_id: studentId,

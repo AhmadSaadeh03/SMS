@@ -34,6 +34,16 @@ function summarizeGrades(grades) {
   };
 }
 
+// Keep only the latest record per date (records must be sorted date DESC, id DESC)
+function deduplicateAttendance(records) {
+  const seen = new Set();
+  return records.filter(r => {
+    if (seen.has(r.date)) return false;
+    seen.add(r.date);
+    return true;
+  });
+}
+
 function summarizeAttendance(records) {
   const total = records.length;
   const present = records.filter(r => r.status === 'Present').length;
@@ -116,10 +126,10 @@ async function getChildDetails(parentId, studentId) {
       teacher_email: a.teacher?.email || null,
     })),
     grades: grades.map(formatGrade),
-    attendance: attendance.map(formatAttendance),
+    attendance: deduplicateAttendance(attendance).map(formatAttendance),
     summaries: {
       grades: summarizeGrades(grades),
-      attendance: summarizeAttendance(attendance),
+      attendance: summarizeAttendance(deduplicateAttendance(attendance)),
     },
   };
 }
@@ -258,11 +268,12 @@ router.get('/children/:studentId/attendance', async (req, res) => {
     }
     if (status) where.status = status;
 
-    const records = await Attendance.findAll({
+    const raw = await Attendance.findAll({
       where,
       include: [{ model: User, as: 'teacher', attributes: ['id', 'name', 'email'] }],
       order: [['date', 'DESC'], ['id', 'DESC']],
     });
+    const records = deduplicateAttendance(raw);
 
     res.json({
       success: true,

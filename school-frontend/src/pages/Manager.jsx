@@ -1141,6 +1141,277 @@ function ReportsView({ t, onNavigate }) {
   );
 }
 
+// ── Timetable ─────────────────────────────────────────────────────────────────
+const TIMETABLE_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'];
+
+function buildTimetableGrid(slots) {
+  const timesSet = new Set();
+  slots.forEach(s => timesSet.add(s.start_time));
+  const times = [...timesSet].sort();
+  const map = {};
+  slots.forEach(s => {
+    if (!map[s.start_time]) map[s.start_time] = {};
+    map[s.start_time][s.day] = s;
+  });
+  return { times, map };
+}
+
+function TimetableView({ t }) {
+  const [meta, setMeta] = useState(null);
+  const [metaLoading, setMetaLoading] = useState(true);
+  const [selectedClass, setSelectedClass] = useState(null);
+  const [slots, setSlots] = useState([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [msg, setMsg] = useState(null);
+  const [form, setForm] = useState({ subject_id: '', day: '', start_time: '', end_time: '' });
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+  const [hoveredSlot, setHoveredSlot] = useState(null);
+
+  useEffect(() => {
+    fetch(`${API}/timetable/meta`, { headers: authHeaders() })
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) setMeta(d);
+        else setMsg({ type: 'error', text: 'Failed to load timetable data.' });
+      })
+      .catch(() => setMsg({ type: 'error', text: 'Server error loading meta.' }))
+      .finally(() => setMetaLoading(false));
+  }, []);
+
+  const loadSlots = useCallback(async (classId) => {
+    setSlotsLoading(true);
+    try {
+      const res = await fetch(`${API}/timetable?class_id=${classId}`, { headers: authHeaders() });
+      const data = await res.json();
+      if (data.success) setSlots(data.slots);
+      else setMsg({ type: 'error', text: data.message || 'Failed to load timetable.' });
+    } catch {
+      setMsg({ type: 'error', text: 'Failed to load timetable.' });
+    }
+    setSlotsLoading(false);
+  }, []);
+
+  const handleClassSelect = (cls) => {
+    setSelectedClass(cls);
+    setMsg(null);
+    setSlots([]);
+    loadSlots(cls.id);
+  };
+
+  const handleAdd = async (e) => {
+    e.preventDefault();
+    if (!selectedClass) return;
+    setSaving(true);
+    setMsg(null);
+    try {
+      const res = await fetch(`${API}/timetable`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ ...form, class_id: selectedClass.id }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMsg({ type: 'success', text: 'Slot added successfully.' });
+        setForm({ subject_id: '', day: '', start_time: '', end_time: '' });
+        loadSlots(selectedClass.id);
+      } else {
+        setMsg({ type: 'error', text: data.message });
+      }
+    } catch {
+      setMsg({ type: 'error', text: 'Failed to add slot.' });
+    }
+    setSaving(false);
+  };
+
+  const handleDelete = async (id) => {
+    setDeletingId(id);
+    try {
+      const res = await fetch(`${API}/timetable/${id}`, { method: 'DELETE', headers: authHeaders() });
+      const data = await res.json();
+      if (data.success) {
+        setSlots(prev => prev.filter(s => s.id !== id));
+        setMsg({ type: 'success', text: 'Slot deleted.' });
+      } else {
+        setMsg({ type: 'error', text: data.message });
+      }
+    } catch {
+      setMsg({ type: 'error', text: 'Failed to delete slot.' });
+    }
+    setDeletingId(null);
+    setHoveredSlot(null);
+  };
+
+  const inputCls = `w-full px-3 py-2.5 rounded-xl text-sm outline-none ${t.inputText}`;
+
+  if (metaLoading) return <div className="flex justify-center py-16"><Spinner /></div>;
+
+  const { times, map } = buildTimetableGrid(slots);
+
+  return (
+    <div>
+      <div className="mb-6">
+        <h2 className={`text-2xl font-bold mb-1 ${t.heading}`}>Timetable</h2>
+        <p className={`text-sm ${t.subheading}`}>Manage the weekly schedule for each class.</p>
+      </div>
+
+      <Alert msg={msg} onClose={() => setMsg(null)} />
+
+      {/* Class selector */}
+      <div className="rounded-2xl p-4 mb-5" style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}` }}>
+        <p className={`text-xs font-semibold uppercase tracking-wider mb-3 ${t.subheading}`}>Select class</p>
+        <div className="flex flex-wrap gap-2">
+          {meta?.classes?.map(cls => (
+            <button key={cls.id} onClick={() => handleClassSelect(cls)}
+              className="px-3 py-2 rounded-xl text-sm font-semibold transition-all"
+              style={selectedClass?.id === cls.id
+                ? { background: 'linear-gradient(135deg,#0891b2,#6366f1)', color: '#fff' }
+                : { background: t.inputBg, color: t.navText, border: `1px solid ${t.inputBorder}` }}>
+              Grade {cls.grade_level}{cls.section}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {selectedClass ? (
+        <>
+          {/* Weekly Grid */}
+          <div className="rounded-2xl overflow-hidden mb-5" style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}` }}>
+            <div className="px-5 py-4" style={{ background: t.tableHeadBg }}>
+              <p className={`font-bold ${t.heading}`}>
+                Week Schedule — Grade {selectedClass.grade_level}{selectedClass.section}
+              </p>
+              <p className={`text-xs mt-0.5 ${t.subheading}`}>Hover a slot and click × to delete it</p>
+            </div>
+            {slotsLoading ? (
+              <div className="flex justify-center py-12"><Spinner /></div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm min-w-[700px]">
+                  <thead>
+                    <tr style={{ background: t.tableHeadBg }}>
+                      <th className={`px-4 py-3 text-left text-xs font-bold uppercase tracking-wider ${t.label} w-24`}>Time</th>
+                      {TIMETABLE_DAYS.map(d => (
+                        <th key={d} className={`px-3 py-3 text-left text-xs font-bold uppercase tracking-wider ${t.label}`}>{d}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {times.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className={`px-4 py-12 text-center text-sm ${t.subheading}`}>
+                          No schedule slots yet. Use the form below to add slots.
+                        </td>
+                      </tr>
+                    ) : times.map((time, i) => (
+                      <tr key={time} style={{ background: i % 2 === 0 ? t.tableRowEven : t.tableRowOdd, borderTop: `1px solid ${t.cardBorder}` }}>
+                        <td className={`px-4 py-3 text-xs font-bold whitespace-nowrap ${t.subheading}`}>{time}</td>
+                        {TIMETABLE_DAYS.map(day => {
+                          const slot = map[time]?.[day];
+                          return (
+                            <td key={day} className="px-2 py-2">
+                              {slot ? (
+                                <div
+                                  className="relative rounded-xl p-2"
+                                  style={{
+                                    background: hoveredSlot === slot.id ? 'rgba(239,68,68,0.12)' : 'rgba(99,102,241,0.12)',
+                                    border: hoveredSlot === slot.id ? '1px solid rgba(239,68,68,0.35)' : '1px solid rgba(99,102,241,0.3)',
+                                    minHeight: '64px',
+                                    transition: 'all 0.15s',
+                                  }}
+                                  onMouseEnter={() => setHoveredSlot(slot.id)}
+                                  onMouseLeave={() => setHoveredSlot(null)}>
+                                  <p className="text-xs font-bold" style={{ color: '#818cf8' }}>{slot.subject?.name}</p>
+                                  <p className={`text-xs mt-0.5 font-medium ${t.subheading}`}>{slot.teacher?.name}</p>
+                                  <p className={`text-xs ${t.subheading}`}>{slot.start_time}–{slot.end_time}</p>
+                                  {hoveredSlot === slot.id && (
+                                    <button
+                                      onClick={() => handleDelete(slot.id)}
+                                      disabled={deletingId === slot.id}
+                                      title="Delete slot"
+                                      className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full text-xs font-bold text-white flex items-center justify-center disabled:opacity-60"
+                                      style={{ background: '#dc2626' }}>
+                                      {deletingId === slot.id ? '…' : '×'}
+                                    </button>
+                                  )}
+                                </div>
+                              ) : (
+                                <div style={{ minHeight: '64px' }} />
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Add Slot Form */}
+          <div className="rounded-2xl p-5" style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}` }}>
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <div>
+                <h3 className={`font-bold ${t.heading}`}>Add Schedule Slot</h3>
+                <p className={`text-sm ${t.subheading}`}>Add a new time slot to this class's timetable.</p>
+              </div>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white flex-shrink-0" style={{ background: 'linear-gradient(135deg,#0891b2,#6366f1)' }}>
+                <Icon name="plus" />
+              </div>
+            </div>
+            <form onSubmit={handleAdd}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-4">
+                <div>
+                  <label className={`block text-xs font-semibold mb-1 ${t.label}`}>Day</label>
+                  <select value={form.day} onChange={e => setForm(f => ({ ...f, day: e.target.value }))} required
+                    className={inputCls} style={{ background: t.fieldBg, border: `1px solid ${t.fieldBorder}`, color: t.fieldText }}>
+                    <option value="">Choose day</option>
+                    {TIMETABLE_DAYS.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className={`block text-xs font-semibold mb-1 ${t.label}`}>Start Time</label>
+                  <input type="time" value={form.start_time} onChange={e => setForm(f => ({ ...f, start_time: e.target.value }))} required
+                    className={inputCls} style={{ background: t.fieldBg, border: `1px solid ${t.fieldBorder}`, color: t.fieldText }} />
+                </div>
+                <div>
+                  <label className={`block text-xs font-semibold mb-1 ${t.label}`}>End Time</label>
+                  <input type="time" value={form.end_time} onChange={e => setForm(f => ({ ...f, end_time: e.target.value }))} required
+                    className={inputCls} style={{ background: t.fieldBg, border: `1px solid ${t.fieldBorder}`, color: t.fieldText }} />
+                </div>
+                <div>
+                  <label className={`block text-xs font-semibold mb-1 ${t.label}`}>Subject</label>
+                  <select value={form.subject_id} onChange={e => setForm(f => ({ ...f, subject_id: e.target.value }))} required
+                    className={inputCls} style={{ background: t.fieldBg, border: `1px solid ${t.fieldBorder}`, color: t.fieldText }}>
+                    <option value="">Choose subject</option>
+                    {meta?.subjects?.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                </div>
+              </div>
+              <p className={`text-xs mb-3 ${t.subheading}`}>
+                💡 The teacher is resolved automatically from the class assignment. Make sure a teacher is assigned to the subject first.
+              </p>
+              <button type="submit" disabled={saving}
+                className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40"
+                style={{ background: 'linear-gradient(135deg,#0891b2,#6366f1)' }}>
+                {saving ? 'Adding…' : 'Add Slot'}
+              </button>
+            </form>
+          </div>
+        </>
+      ) : (
+        <div className={`flex flex-col items-center justify-center min-h-[320px] rounded-2xl gap-3 ${t.subheading}`}
+          style={{ background: t.cardBg, border: `1px dashed ${t.cardBorder}` }}>
+          <span className="text-4xl">📅</span>
+          <p className={`text-sm font-semibold ${t.heading}`}>Select a class above to view or edit its timetable</p>
+          <p className="text-sm">The weekly schedule and add-slot form will appear here.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Manager({ onLogout }) {
   const [view, setView] = useState("dashboard");
   const [dark, setDark] = useState(true);
@@ -1210,6 +1481,7 @@ export default function Manager({ onLogout }) {
     { id: "dashboard", icon: "📊", label: "Dashboard" },
     { id: "setup", icon: "🏫", label: "Class Assignments" },
     { id: "students", icon: "🎓", label: "Students" },
+    { id: "timetable", icon: "📅", label: "Timetable" },
     { id: "announcements", icon: "📢", label: "Announcements" },
     { id: "reports", icon: "📈", label: "Reports" },
   ];
@@ -1291,6 +1563,7 @@ export default function Manager({ onLogout }) {
           {view === "dashboard" && <DashboardView t={t} onNavigate={handleNavigate} />}
           {view === "setup" && <ClassSetupView t={t} initialClassId={setupClassId} key={setupClassId || "setup"} />}
           {view === "students" && <StudentsView t={t} />}
+          {view === "timetable" && <TimetableView t={t} />}
           {view === "announcements" && <AnnouncementsView t={t} />}
           {view === "reports" && <ReportsView t={t} onNavigate={handleNavigate} />}
         </main>

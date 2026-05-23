@@ -22,35 +22,29 @@ function Spinner() {
 }
 
 // ─── Alert ────────────────────────────────────────────────────────────────────
-function Alert({ msg }) {
+function Alert({ msg, t }) {
   if (!msg) return null;
   const ok = msg.type === "success";
+  const color = ok ? t.alertSuccess : t.alertError;
   return (
     <div className="flex items-start gap-2.5 p-3.5 rounded-xl"
       style={ok
         ? { background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)" }
         : { background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)" }}>
-      <svg className={`w-4 h-4 mt-0.5 flex-shrink-0 ${ok ? "text-green-400" : "text-red-400"}`}
+      <svg className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color }}
         fill="none" stroke="currentColor" viewBox="0 0 24 24">
         {ok
           ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />}
       </svg>
-      <p className={`text-sm ${ok ? "text-green-400" : "text-red-400"}`}>{msg.text}</p>
+      <p className="text-sm" style={{ color }}>{msg.text}</p>
     </div>
   );
 }
 
 // ─── Role badge ───────────────────────────────────────────────────────────────
-const ROLE_COLORS = {
-  admin:   { bg: "rgba(239,68,68,0.15)",   text: "#f87171", border: "rgba(239,68,68,0.3)" },
-  manager: { bg: "rgba(249,115,22,0.15)",  text: "#fb923c", border: "rgba(249,115,22,0.3)" },
-  teacher: { bg: "rgba(99,102,241,0.15)",  text: "#818cf8", border: "rgba(99,102,241,0.3)" },
-  student: { bg: "rgba(34,197,94,0.15)",   text: "#4ade80", border: "rgba(34,197,94,0.3)" },
-  parent:  { bg: "rgba(8,145,178,0.15)",   text: "#22d3ee", border: "rgba(8,145,178,0.3)" },
-};
-function RoleBadge({ role }) {
-  const c = ROLE_COLORS[role] || ROLE_COLORS.admin;
+function RoleBadge({ role, t }) {
+  const c = t.roleBadge[role] || t.roleBadge.admin;
   return (
     <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize"
       style={{ background: c.bg, color: c.text, border: `1px solid ${c.border}` }}>
@@ -59,12 +53,13 @@ function RoleBadge({ role }) {
   );
 }
 
-function ManagerScopeBadge({ scope }) {
+function ManagerScopeBadge({ scope, t }) {
   if (!scope) return null;
   const label = scope === "grades_8_12" ? "Grades 8-12" : "Grades 1-7";
+  const c = t.roleBadge.manager;
   return (
     <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-semibold"
-      style={{ background: "rgba(249,115,22,0.15)", color: "#fb923c", border: "1px solid rgba(249,115,22,0.3)" }}>
+      style={{ background: c.bg, color: c.text, border: `1px solid ${c.border}` }}>
       {label}
     </span>
   );
@@ -76,7 +71,7 @@ function NavItem({ icon, label, active, onClick, t }) {
     <button onClick={onClick}
       className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 text-left`}
       style={active
-        ? { background: "linear-gradient(135deg,rgba(8,145,178,0.2),rgba(99,102,241,0.2))", color: "#22d3ee", border: "1px solid rgba(34,211,238,0.2)" }
+        ? { background: t.activeNavBg, color: t.activeNavColor, border: `1px solid ${t.activeNavBorder}` }
         : { color: t.navText, border: "1px solid transparent" }}>
       <span className="text-base flex-shrink-0">{icon}</span>
       {label}
@@ -167,7 +162,7 @@ function AddUserView({ t }) {
         {/* Common fields */}
         <div className="rounded-xl p-5 space-y-4"
           style={{ background: "rgba(99,102,241,0.07)", border: "1px solid rgba(99,102,241,0.2)" }}>
-          <p className="text-indigo-400 text-xs font-semibold uppercase tracking-wider capitalize">{role} Info</p>
+          <p className={`${t.sectionIndigo} text-xs font-semibold uppercase tracking-wider capitalize`}>{role} Info</p>
           <Field label="Full Name"      name="name"     placeholder="e.g. Ahmed Hassan" {...fieldProps} />
           <Field label="Email Address"  name="email"    type="email" placeholder="user@school.com" {...fieldProps} />
           <Field label="Password"       name="password" type="password" placeholder="••••••••" {...fieldProps} />
@@ -177,7 +172,7 @@ function AddUserView({ t }) {
         {role === "student" && (
           <div className="rounded-xl p-5 space-y-4"
             style={{ background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.2)" }}>
-            <p className="text-green-400 text-xs font-semibold uppercase tracking-wider">Student Details</p>
+            <p className={`${t.sectionGreen} text-xs font-semibold uppercase tracking-wider`}>Student Details</p>
             <div>
               <label className={`block text-sm font-medium mb-2 ${t.label}`}>Class & Section</label>
               <select
@@ -198,7 +193,7 @@ function AddUserView({ t }) {
             </div>
 
             <div className="pt-1 border-t" style={{ borderColor: "rgba(34,197,94,0.2)" }}>
-              <p className="text-green-400 text-xs font-semibold uppercase tracking-wider mb-4">Parent Info</p>
+              <p className={`${t.sectionGreen} text-xs font-semibold uppercase tracking-wider mb-4`}>Parent Info</p>
               <p className={`text-xs mb-3 ${t.subheading}`}>Enter an existing parent's email, or leave blank to create a new parent account.</p>
               <div className="space-y-4">
                 <Field label="Existing Parent Email (optional)" name="existingParentEmail" type="email" placeholder="parent@school.com" required={false} {...fieldProps} />
@@ -217,7 +212,7 @@ function AddUserView({ t }) {
         {role === "manager" && (
           <div className="rounded-xl p-5 space-y-4"
             style={{ background: "rgba(249,115,22,0.06)", border: "1px solid rgba(249,115,22,0.2)" }}>
-            <p className="text-orange-400 text-xs font-semibold uppercase tracking-wider">Manager Grade Range</p>
+            <p className={`${t.sectionOrange} text-xs font-semibold uppercase tracking-wider`}>Manager Grade Range</p>
             <div>
               <label className={`block text-sm font-medium mb-2 ${t.label}`}>Responsible Grades</label>
               <select
@@ -235,7 +230,7 @@ function AddUserView({ t }) {
         )}
 
 
-        <Alert msg={msg} />
+        <Alert msg={msg} t={t} />
 
         <button type="submit" disabled={loading}
           className="w-full py-3 px-4 rounded-xl font-semibold text-white text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
@@ -318,7 +313,7 @@ function UserDetailsModal({ user, t, onClose }) {
               style={{ background: t.inputBg, border: `1px solid ${t.inputBorder}` }}>
               <span className={`text-sm font-medium ${t.heading}`}>Grade {c.grade_level}</span>
               <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold"
-                style={{ background: "rgba(99,102,241,0.15)", color: "#818cf8", border: "1px solid rgba(99,102,241,0.3)" }}>
+                style={{ background: t.teacherClassBg, color: t.teacherClassText, border: `1px solid ${t.teacherClassBorder}` }}>
                 Section {c.section}
               </span>
             </div>
@@ -458,7 +453,7 @@ function EditUserModal({ user, t, onClose, onSaved }) {
               onBlur={e => (e.target.style.border = `1px solid ${t.inputBorder}`)} />
           </div>
 
-          <Alert msg={msg} />
+          <Alert msg={msg} t={t} />
 
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose}
@@ -596,7 +591,7 @@ function UsersView({ t }) {
         )}
       </div>
 
-      <Alert msg={msg} />
+      <Alert msg={msg} t={t} />
 
       {loading ? (
         <div className="flex justify-center py-16">
@@ -624,16 +619,16 @@ function UsersView({ t }) {
                   <td className={`px-4 py-3 font-medium ${t.heading}`}>{u.name}</td>
                   <td className={`px-4 py-3 ${t.subheading}`}>{u.email}</td>
                   <td className="px-4 py-3">
-                    <RoleBadge role={u.role} />
-                    {u.role === "manager" && <ManagerScopeBadge scope={u.manager_scope} />}
+                    <RoleBadge role={u.role} t={t} />
+                    {u.role === "manager" && <ManagerScopeBadge scope={u.manager_scope} t={t} />}
                   </td>
                   <td className={`px-4 py-3 ${t.subheading}`}>{new Date(u.createdAt).toLocaleDateString()}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       {["student", "parent", "teacher"].includes(u.role) && (
                         <button onClick={() => setDetailsUser(u)}
-                          className="p-1.5 rounded-lg text-cyan-400 hover:text-cyan-300 transition-colors"
-                          style={{ background: "rgba(8,145,178,0.1)" }}
+                          className="p-1.5 rounded-lg transition-colors"
+                          style={{ color: t.actionBtn.view.color, background: t.actionBtn.view.bg }}
                           title="View details">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -644,8 +639,8 @@ function UsersView({ t }) {
                         </button>
                       )}
                       <button onClick={() => setEditingUser(u)}
-                        className="p-1.5 rounded-lg text-indigo-400 hover:text-indigo-300 transition-colors"
-                        style={{ background: "rgba(99,102,241,0.1)" }}
+                        className="p-1.5 rounded-lg transition-colors"
+                        style={{ color: t.actionBtn.edit.color, background: t.actionBtn.edit.bg }}
                         title="Edit user">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -653,8 +648,8 @@ function UsersView({ t }) {
                         </svg>
                       </button>
                       <button onClick={() => deleteUser(u.id, u.name)}
-                        className="p-1.5 rounded-lg text-red-400 hover:text-red-300 transition-colors"
-                        style={{ background: "rgba(239,68,68,0.1)" }}
+                        className="p-1.5 rounded-lg transition-colors"
+                        style={{ color: t.actionBtn.delete.color, background: t.actionBtn.delete.bg }}
                         title="Delete user">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -694,10 +689,10 @@ function DashboardView({ t }) {
   }, []);
 
   const CARDS = [
-    { role: "teacher", label: "Teachers",  icon: "👩‍🏫", color: "#818cf8" },
-    { role: "student", label: "Students",  icon: "🎓", color: "#4ade80" },
-    { role: "parent",  label: "Parents",   icon: "👨‍👩‍👧", color: "#22d3ee" },
-    { role: "manager", label: "Managers",  icon: "🏫", color: "#fb923c" },
+    { role: "teacher", label: "Teachers",  icon: "👩‍🏫" },
+    { role: "student", label: "Students",  icon: "🎓" },
+    { role: "parent",  label: "Parents",   icon: "👨‍👩‍👧" },
+    { role: "manager", label: "Managers",  icon: "🏫" },
   ];
 
   return (
@@ -713,7 +708,7 @@ function DashboardView({ t }) {
             style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}` }}>
             <div className="flex items-center justify-between mb-3">
               <span className="text-2xl">{c.icon}</span>
-              <span className="text-2xl font-bold" style={{ color: c.color }}>
+              <span className="text-2xl font-bold" style={{ color: t.statColors[c.role] }}>
                 {stats ? stats[c.role] : "—"}
               </span>
             </div>
@@ -847,7 +842,7 @@ function AnnouncementsView({ t }) {
             {/* Target selector */}
             <div className="rounded-xl p-5 space-y-4"
               style={{ background: "rgba(99,102,241,0.07)", border: "1px solid rgba(99,102,241,0.2)" }}>
-              <p className="text-indigo-400 text-xs font-semibold uppercase tracking-wider">Send To</p>
+              <p className={`${t.sectionIndigo} text-xs font-semibold uppercase tracking-wider`}>Send To</p>
               <div className="flex flex-wrap gap-2">
                 {TARGET_OPTS.map(opt => (
                   <button key={opt.id} type="button"
@@ -885,7 +880,7 @@ function AnnouncementsView({ t }) {
                     <div className="flex flex-wrap gap-2">
                       {selectedUsers.map(u => (
                         <span key={u.id} className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold"
-                          style={{ background: "rgba(8,145,178,0.15)", color: "#22d3ee", border: "1px solid rgba(8,145,178,0.3)" }}>
+                          style={{ background: t.chipBg, color: t.chipText, border: `1px solid ${t.chipBorder}` }}>
                           {u.name}
                           <button type="button" onClick={() => toggleUser(u)} className="hover:opacity-70 leading-none text-base">×</button>
                         </span>
@@ -916,8 +911,8 @@ function AnnouncementsView({ t }) {
                             <span className={`ml-2 text-xs ${t.subheading}`}>{u.email}</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <RoleBadge role={u.role} />
-                            {isSelected && <span className="text-cyan-400 font-bold text-xs">✓</span>}
+                            <RoleBadge role={u.role} t={t} />
+                            {isSelected && <span className="font-bold text-xs" style={{ color: t.chipText }}>✓</span>}
                           </div>
                         </button>
                       );
@@ -933,7 +928,7 @@ function AnnouncementsView({ t }) {
             {/* Content fields */}
             <div className="rounded-xl p-5 space-y-4"
               style={{ background: "rgba(8,145,178,0.06)", border: "1px solid rgba(8,145,178,0.2)" }}>
-              <p className="text-cyan-400 text-xs font-semibold uppercase tracking-wider">Message Content</p>
+              <p className={`${t.sectionCyan} text-xs font-semibold uppercase tracking-wider`}>Message Content</p>
               <div>
                 <label className={`block text-sm font-medium mb-2 ${t.label}`}>Title</label>
                 <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} required
@@ -955,13 +950,13 @@ function AnnouncementsView({ t }) {
                 <label className={`block text-sm font-medium mb-2 ${t.label}`}>Date</label>
                 <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} required
                   className={inputClass}
-                  style={{ background: t.inputBg, border: `1px solid ${t.inputBorder}`, colorScheme: "dark" }}
+                  style={{ background: t.inputBg, border: `1px solid ${t.inputBorder}`, colorScheme: t.colorScheme }}
                   onFocus={e => (e.target.style.border = "1px solid #6366f1")}
                   onBlur={e  => (e.target.style.border = `1px solid ${t.inputBorder}`)} />
               </div>
             </div>
 
-            <Alert msg={msg} />
+            <Alert msg={msg} t={t} />
 
             <button type="submit"
               disabled={loading || (target === "specific" && selectedUsers.length === 0)}
@@ -1004,7 +999,7 @@ function AnnouncementsView({ t }) {
                       <div className="flex flex-wrap items-center gap-3 mt-3">
                         <span className={`text-xs ${t.subheading}`}>{a.date}</span>
                         <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold"
-                          style={{ background: "rgba(99,102,241,0.15)", color: "#818cf8", border: "1px solid rgba(99,102,241,0.3)" }}>
+                          style={{ background: t.recipientBadgeBg, color: t.recipientBadgeText, border: `1px solid ${t.recipientBadgeBorder}` }}>
                           {a.receivers?.length ?? 0} recipient{(a.receivers?.length ?? 0) !== 1 ? "s" : ""}
                         </span>
                       </div>
@@ -1058,28 +1053,82 @@ export default function Admin({ onLogout }) {
     tableRowOdd: "transparent",
     selectBg: "#1e2d45",
     selectText: "#ffffff",
+    colorScheme: "dark",
+    isDark: true,
+    roleBadge: {
+      admin:   { bg: "rgba(239,68,68,0.15)",   text: "#f87171", border: "rgba(239,68,68,0.3)" },
+      manager: { bg: "rgba(249,115,22,0.15)",  text: "#fb923c", border: "rgba(249,115,22,0.3)" },
+      teacher: { bg: "rgba(99,102,241,0.15)",  text: "#818cf8", border: "rgba(99,102,241,0.3)" },
+      student: { bg: "rgba(34,197,94,0.15)",   text: "#4ade80", border: "rgba(34,197,94,0.3)" },
+      parent:  { bg: "rgba(8,145,178,0.15)",   text: "#22d3ee", border: "rgba(8,145,178,0.3)" },
+    },
+    actionBtn: {
+      view:   { color: "#22d3ee", bg: "rgba(8,145,178,0.1)"  },
+      edit:   { color: "#818cf8", bg: "rgba(99,102,241,0.1)" },
+      delete: { color: "#f87171", bg: "rgba(239,68,68,0.1)"  },
+    },
+    activeNavColor: "#22d3ee",
+    activeNavBg: "linear-gradient(135deg,rgba(8,145,178,0.2),rgba(99,102,241,0.2))",
+    activeNavBorder: "rgba(34,211,238,0.2)",
+    alertSuccess: "#4ade80",
+    alertError: "#f87171",
+    sectionGreen:  "text-green-400",
+    sectionCyan:   "text-cyan-400",
+    sectionOrange: "text-orange-400",
+    sectionIndigo: "text-indigo-400",
+    statColors: { teacher: "#818cf8", student: "#4ade80", parent: "#22d3ee", manager: "#fb923c" },
+    chipBg: "rgba(8,145,178,0.15)", chipText: "#22d3ee", chipBorder: "rgba(8,145,178,0.3)",
+    recipientBadgeBg: "rgba(99,102,241,0.15)", recipientBadgeText: "#818cf8", recipientBadgeBorder: "rgba(99,102,241,0.3)",
+    teacherClassBg: "rgba(99,102,241,0.15)", teacherClassText: "#818cf8", teacherClassBorder: "rgba(99,102,241,0.3)",
   } : {
-    pageBg: "#e2e8f0",
+    pageBg: "#dde4ee",
     sidebarBg: "#ffffff",
-    sidebarBorder: "#cbd5e1",
+    sidebarBorder: "#b8c8d8",
     cardBg: "#ffffff",
-    cardBorder: "#cbd5e1",
+    cardBorder: "#b8c8d8",
     heading: "text-slate-900",
     subheading: "text-slate-500",
     label: "text-slate-700",
-    inputBg: "#f1f5f9",
-    inputBorder: "#94a3b8",
+    inputBg: "#f0f5fb",
+    inputBorder: "#8faabe",
     inputText: "text-slate-900",
     inputPlaceholder: "placeholder-slate-400",
     navText: "#334155",
-    toggleBg: "#e2e8f0",
-    toggleBorder: "#94a3b8",
-    toggleIcon: "text-slate-600",
-    tableHeadBg: "#e2e8f0",
+    toggleBg: "#e4ecf6",
+    toggleBorder: "#8faabe",
+    toggleIcon: "text-slate-700",
+    tableHeadBg: "#e4ecf6",
     tableRowEven: "#ffffff",
-    tableRowOdd: "#f8fafc",
-    selectBg: "#f1f5f9",
+    tableRowOdd: "#f4f8fc",
+    selectBg: "#ffffff",
     selectText: "#0f172a",
+    colorScheme: "light",
+    isDark: false,
+    roleBadge: {
+      admin:   { bg: "rgba(185,28,28,0.1)",   text: "#b91c1c", border: "rgba(185,28,28,0.3)" },
+      manager: { bg: "rgba(194,65,12,0.1)",   text: "#c2410c", border: "rgba(194,65,12,0.3)" },
+      teacher: { bg: "rgba(55,48,163,0.1)",   text: "#3730a3", border: "rgba(55,48,163,0.3)" },
+      student: { bg: "rgba(22,101,52,0.1)",   text: "#166534", border: "rgba(22,101,52,0.3)" },
+      parent:  { bg: "rgba(14,116,144,0.1)",  text: "#0e7490", border: "rgba(14,116,144,0.3)" },
+    },
+    actionBtn: {
+      view:   { color: "#0e7490", bg: "rgba(14,116,144,0.12)" },
+      edit:   { color: "#3730a3", bg: "rgba(55,48,163,0.1)"   },
+      delete: { color: "#b91c1c", bg: "rgba(185,28,28,0.1)"   },
+    },
+    activeNavColor: "#0e7490",
+    activeNavBg: "linear-gradient(135deg,rgba(8,145,178,0.14),rgba(99,102,241,0.1))",
+    activeNavBorder: "rgba(14,116,144,0.3)",
+    alertSuccess: "#166534",
+    alertError: "#b91c1c",
+    sectionGreen:  "text-green-700",
+    sectionCyan:   "text-cyan-700",
+    sectionOrange: "text-orange-700",
+    sectionIndigo: "text-indigo-700",
+    statColors: { teacher: "#3730a3", student: "#166534", parent: "#0e7490", manager: "#c2410c" },
+    chipBg: "rgba(14,116,144,0.1)", chipText: "#0e7490", chipBorder: "rgba(14,116,144,0.3)",
+    recipientBadgeBg: "rgba(55,48,163,0.1)", recipientBadgeText: "#3730a3", recipientBadgeBorder: "rgba(55,48,163,0.3)",
+    teacherClassBg: "rgba(55,48,163,0.1)", teacherClassText: "#3730a3", teacherClassBorder: "rgba(55,48,163,0.3)",
   };
 
   const NAV = [
@@ -1125,7 +1174,7 @@ export default function Admin({ onLogout }) {
           </div>
           <div className="min-w-0">
             <p className={`text-sm font-medium truncate ${t.heading}`}>{user.name}</p>
-            <RoleBadge role={user.role || "admin"} />
+            <RoleBadge role={user.role || "admin"} t={t} />
           </div>
         </div>
         <button onClick={onLogout}

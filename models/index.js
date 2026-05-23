@@ -7,6 +7,7 @@ const Grade = require('./Grade');
 const Attendance = require('./Attendance');
 const Announcement = require('./Announcement');
 const Announcement_Receiver = require('./Announcement_Receiver');
+const Timetable = require('./Timetable');
 
 // Associations
 
@@ -45,8 +46,14 @@ Announcement.hasMany(Announcement_Receiver, { foreignKey: 'announcement_id', as:
 Announcement_Receiver.belongsTo(Announcement, { foreignKey: 'announcement_id', as: 'announcement' });
 Announcement_Receiver.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 
+// Timetable
+Timetable.belongsTo(Class,   { foreignKey: 'class_id',   as: 'class'   });
+Timetable.belongsTo(Subject, { foreignKey: 'subject_id', as: 'subject' });
+Timetable.belongsTo(User,    { foreignKey: 'teacher_id', as: 'teacher' });
+Class.hasMany(Timetable,     { foreignKey: 'class_id' });
+
 module.exports = {
   User, Student, Class, Subject,
   Teachers_Classes, Grade, Attendance,
-  Announcement, Announcement_Receiver
+  Announcement, Announcement_Receiver, Timetable
 };

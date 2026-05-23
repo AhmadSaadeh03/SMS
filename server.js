@@ -24,8 +24,9 @@ const studentsRoute = require("./routes/students");
 const adminRoute = require("./routes/admin");
 const teacherRoute  = require("./routes/teacher");
 const managerRoute  = require("./routes/manager");
-const parentRoute   = require("./routes/parent");
-const studentRoute  = require("./routes/student");
+const parentRoute    = require("./routes/parent");
+const studentRoute   = require("./routes/student");
+const timetableRoute = require("./routes/timetable");
 app.use("/login", authRoute); // POST to http://localhost:5000/login
 app.use("/api/login", authRoute); // POST to http://localhost:5000/api/login (for compatibility)
 app.use("/students", studentsRoute); // GET to http://localhost:5000/students
@@ -35,6 +36,7 @@ app.use("/teachers", teacherRoute);
 app.use("/manager", managerRoute);
 app.use("/parent", parentRoute);
 app.use("/student", studentRoute);
+app.use("/timetable", timetableRoute);
 
 
 // Basic health check

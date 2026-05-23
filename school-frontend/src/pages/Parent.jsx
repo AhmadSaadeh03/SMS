@@ -69,6 +69,77 @@ function gradeTone(pct) {
   return "danger";
 }
 
+// ─── Timetable Tab ────────────────────────────────────────────────────────────
+const TIMETABLE_DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday'];
+
+function TimetableTab({ t, studentId }) {
+  const [slots, setSlots]     = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`http://localhost:5000/timetable?student_id=${studentId}`, {
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionStorage.getItem("token")}` },
+    })
+      .then(r => r.json())
+      .then(d => { if (d.success) setSlots(d.slots); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [studentId]);
+
+  if (loading) return <div className="flex justify-center py-16"><Spinner /></div>;
+
+  const times = [...new Set(slots.map(s => s.start_time))].sort();
+  const map = {};
+  slots.forEach(s => { if (!map[s.day]) map[s.day] = {}; map[s.day][s.start_time] = s; });
+
+  return (
+    <div>
+      <div className="mb-5">
+        <h2 className={`text-xl font-bold ${t.heading}`}>Class Timetable</h2>
+        <p className={`text-sm mt-1 ${t.subheading}`}>Weekly schedule for your child's class.</p>
+      </div>
+      <div className="rounded-2xl overflow-hidden" style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}` }}>
+        {slots.length === 0 ? (
+          <p className={`text-center py-12 text-sm ${t.subheading}`}>No timetable set for this class yet.</p>
+        ) : (
+          <div className="overflow-auto">
+            <table className="w-full text-sm min-w-[680px]">
+              <thead>
+                <tr style={{ background: t.tableHeadBg }}>
+                  <th className={`px-4 py-3 text-left text-xs font-bold uppercase tracking-wider ${t.label}`}>Time</th>
+                  {TIMETABLE_DAYS.map(d => <th key={d} className={`px-4 py-3 text-left text-xs font-bold uppercase tracking-wider ${t.label}`}>{d}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {times.map((time, i) => (
+                  <tr key={time} style={{ background: i % 2 === 0 ? t.tableRowEven : t.tableRowOdd, borderTop: `1px solid ${t.cardBorder}` }}>
+                    <td className={`px-4 py-3 font-bold text-xs ${t.label}`}>{time}</td>
+                    {TIMETABLE_DAYS.map(day => {
+                      const slot = map[day]?.[time];
+                      return (
+                        <td key={day} className="px-4 py-3">
+                          {slot ? (
+                            <div className="rounded-xl p-2.5" style={{ background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.2)" }}>
+                              <p className={`font-bold text-xs ${t.heading}`}>{slot.subject?.name}</p>
+                              <p className={`text-xs mt-0.5 ${t.subheading}`}>{slot.teacher?.name}</p>
+                              <p className={`text-xs mt-0.5 ${t.subheading}`}>{slot.start_time}–{slot.end_time}</p>
+                            </div>
+                          ) : <span className={`text-xs ${t.subheading} opacity-30`}>—</span>}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Parent({ onLogout }) {
   const [data, setData]           = useState(null);
   const [selectedId, setSelectedId] = useState(null);
@@ -76,7 +147,9 @@ export default function Parent({ onLogout }) {
   const [loading, setLoading]     = useState(true);
   const [msg, setMsg]             = useState(null);
   const [dark, setDark]           = useState(() => localStorage.getItem("parent-theme") !== "light");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen]   = useState(false);
+  const [gradeTypeFilter, setGradeTypeFilter] = useState("");
+  const [gradeSubjFilter, setGradeSubjFilter] = useState("");
   const user = JSON.parse(sessionStorage.getItem("user") || "{}");
 
   const t = dark ? {
@@ -142,10 +215,32 @@ export default function Parent({ onLogout }) {
     [data, selectedId]
   );
 
+  // Group child's flat grades array by subject
+  const gradesBySubject = useMemo(() => {
+    const map = {};
+    for (const g of selectedChild?.grades || []) {
+      if (!map[g.subject_id]) {
+        map[g.subject_id] = { subject_id: g.subject_id, subject_name: g.subject_name, grades: [] };
+      }
+      map[g.subject_id].grades.push(g);
+    }
+    return Object.values(map);
+  }, [selectedChild]);
+
+  const filteredGradesBySubject = useMemo(() => {
+    let subjects = gradesBySubject;
+    if (gradeSubjFilter) subjects = subjects.filter(s => String(s.subject_id) === gradeSubjFilter);
+    if (gradeTypeFilter) subjects = subjects
+      .map(s => ({ ...s, grades: s.grades.filter(g => g.type === gradeTypeFilter) }))
+      .filter(s => s.grades.length > 0);
+    return subjects;
+  }, [gradesBySubject, gradeSubjFilter, gradeTypeFilter]);
+
   const nav = [
     { id: "overview",      icon: "🏠", label: "Overview"      },
     { id: "marks",         icon: "📊", label: "All Marks"     },
     { id: "attendance",    icon: "📅", label: "Attendance"    },
+    { id: "timetable",     icon: "🗓️", label: "Timetable"    },
     { id: "announcements", icon: "🔔", label: "Announcements" },
   ];
 
@@ -344,43 +439,79 @@ export default function Parent({ onLogout }) {
 
               {/* ── ALL MARKS ── */}
               {activeTab === "marks" && (
-                <section className="rounded-2xl overflow-hidden" style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}` }}>
-                  <div className="p-5 flex items-center justify-between gap-4" style={{ background: t.tableHeadBg }}>
-                    <div>
-                      <h3 className={`font-bold ${t.heading}`}>All Marks</h3>
-                      <p className={`text-sm mt-1 ${t.subheading}`}>Exam, quiz, and homework details with teacher and subject.</p>
+                <div className="space-y-5">
+                  {/* Filter bar */}
+                  <div className="rounded-2xl p-4 flex flex-wrap gap-3 items-center justify-between"
+                    style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}` }}>
+                    <div className="flex flex-wrap gap-3">
+                      <select value={gradeTypeFilter} onChange={e => setGradeTypeFilter(e.target.value)}
+                        className="px-3 py-2 rounded-xl text-sm font-medium outline-none"
+                        style={{ background: t.inputBg, border: `1px solid ${t.inputBorder}`, color: t.selectColor }}>
+                        <option value="">All Types</option>
+                        <option value="exam">Exam</option>
+                        <option value="quiz">Quiz</option>
+                        <option value="homework">Homework</option>
+                      </select>
+                      <select value={gradeSubjFilter} onChange={e => setGradeSubjFilter(e.target.value)}
+                        className="px-3 py-2 rounded-xl text-sm font-medium outline-none"
+                        style={{ background: t.inputBg, border: `1px solid ${t.inputBorder}`, color: t.selectColor }}>
+                        <option value="">All Subjects</option>
+                        {gradesBySubject.map(s => (
+                          <option key={s.subject_id} value={String(s.subject_id)}>{s.subject_name}</option>
+                        ))}
+                      </select>
                     </div>
                     <Badge tone={gradeTone(selectedChild.summaries.grades.percentage)}>
-                      {selectedChild.summaries.grades.percentage}% average
+                      {selectedChild.summaries.grades.percentage}% overall average
                     </Badge>
                   </div>
-                  <div className="overflow-auto">
-                    <table className="w-full text-sm min-w-[720px]">
-                      <thead>
-                        <tr style={{ background: t.tableHeadBg }}>
-                          {["Subject", "Teacher", "Type", "Mark", "Date"].map(h => (
-                            <th key={h} className={`px-5 py-3 text-left text-xs font-bold uppercase tracking-wider ${t.label}`}>{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(selectedChild.grades || []).length === 0 ? (
-                          <tr><td colSpan={5} className={`px-5 py-10 text-center ${t.subheading}`}>No marks found.</td></tr>
-                        ) : (selectedChild.grades || []).map((g, i) => (
-                          <tr key={g.id} style={{ background: i % 2 === 0 ? t.tableRowEven : t.tableRowOdd, borderTop: `1px solid ${t.cardBorder}` }}>
-                            <td className={`px-5 py-3 font-bold ${t.heading}`}>{g.subject_name || "Subject"}</td>
-                            <td className={`px-5 py-3 ${t.subheading}`}>{g.teacher_name || "Teacher"}</td>
-                            <td className="px-5 py-3"><Badge>{g.type}</Badge></td>
-                            <td className={`px-5 py-3 font-bold ${t.heading}`}>
-                              {g.grade_value}/{g.max_grade} <span className={t.subheading}>({g.percentage}%)</span>
-                            </td>
-                            <td className={`px-5 py-3 ${t.subheading}`}>{g.date}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </section>
+
+                  {/* Per-subject sections */}
+                  {filteredGradesBySubject.length === 0 ? (
+                    <div className="rounded-2xl p-10 text-center" style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}` }}>
+                      <p className={t.subheading}>No marks found for the selected filter.</p>
+                    </div>
+                  ) : filteredGradesBySubject.map(subj => {
+                    const earned   = subj.grades.reduce((s, g) => s + Number(g.grade_value), 0);
+                    const possible = subj.grades.reduce((s, g) => s + Number(g.max_grade), 0);
+                    const pct      = possible > 0 ? Math.round((earned / possible) * 100) : 0;
+                    return (
+                      <section key={subj.subject_id} className="rounded-2xl overflow-hidden"
+                        style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}` }}>
+                        <div className="p-5 flex items-center justify-between gap-4" style={{ background: t.tableHeadBg }}>
+                          <div>
+                            <h3 className={`font-bold ${t.heading}`}>{subj.subject_name}</h3>
+                            <p className={`text-sm mt-1 ${t.subheading}`}>{subj.grades.length} record(s)</p>
+                          </div>
+                          <Badge tone={gradeTone(pct)}>{pct}% subject avg</Badge>
+                        </div>
+                        <div className="overflow-auto">
+                          <table className="w-full text-sm min-w-[520px]">
+                            <thead>
+                              <tr style={{ background: t.tableHeadBg }}>
+                                {["Type", "Teacher", "Mark", "Date"].map(h => (
+                                  <th key={h} className={`px-5 py-3 text-left text-xs font-bold uppercase tracking-wider ${t.label}`}>{h}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {subj.grades.map((g, i) => (
+                                <tr key={g.id} style={{ background: i % 2 === 0 ? t.tableRowEven : t.tableRowOdd, borderTop: `1px solid ${t.cardBorder}` }}>
+                                  <td className="px-5 py-3"><Badge>{g.type}</Badge></td>
+                                  <td className={`px-5 py-3 ${t.subheading}`}>{g.teacher_name || "Teacher"}</td>
+                                  <td className={`px-5 py-3 font-bold ${t.heading}`}>
+                                    {g.grade_value}/{g.max_grade} <span className={t.subheading}>({g.percentage}%)</span>
+                                  </td>
+                                  <td className={`px-5 py-3 ${t.subheading}`}>{g.date}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </section>
+                    );
+                  })}
+                </div>
               )}
 
               {/* ── ATTENDANCE ── */}
@@ -419,6 +550,11 @@ export default function Parent({ onLogout }) {
                     </table>
                   </div>
                 </section>
+              )}
+
+              {/* ── TIMETABLE ── */}
+              {activeTab === "timetable" && selectedChild && (
+                <TimetableTab t={t} studentId={selectedChild.user_id} />
               )}
 
               {/* ── ANNOUNCEMENTS ── */}
